@@ -3,8 +3,13 @@
 
 #include "main.hpp"
 
-#define CLOUD_PIN 14
 #define BUFFER_SIZE 245
+
+#define DTR 4
+#define RTS 5
+
+#define RESET_32 12
+#define BOOT_32 13
 
 const uint32_t timeout_micros = (int)(1.0 / 74880 * 1E6) * 20;
 uint32_t send_timeout = 0;
@@ -23,6 +28,10 @@ typedef enum {
     UPLOAD_COMMAND,
     OTHER_DATA
 } MessageType;
+
+//TODO добавить команду изменения канала
+//Команду изменения мощности сигнала
+//Команду изменения скорости прошивки между дистанционными платами
 typedef enum {
     RESET,
     BOOT,
@@ -57,5 +66,7 @@ void timersCheck();
 
 void writeToEEPROM(uint8_t *data, uint8_t len);
 void readFromEEPROM(uint8_t *data, uint8_t len);
+
+void uploadCheckMaster();
 
 #endif

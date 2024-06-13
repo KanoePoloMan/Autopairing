@@ -6,14 +6,6 @@
 #include <ESP8266WiFi.h>
 #include <espnow.h>
 
-#define DTR 4
-#define RTS 5
-
-#define RESET_32 12
-#define BOOT_32 13
-
-
-
 #define BOARD2//slave
 // #define BOARD1//programmer
 
@@ -38,7 +30,13 @@ void boardInitialisation();
 GyverOLED<SSD1306_128x64, OLED_NO_BUFFER> oled;
 
 void screenInitialize();
-
 #endif
+
+#include <GyverButton.h>
+
+#define CLOUD_PIN 14
+
+GButton cloudButton(CLOUD_PIN);
+void buttonInitialize();
 
 #endif

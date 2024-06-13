@@ -3,7 +3,7 @@
 MessageStruct::MessageStruct() {
     msgType = MessageType::DATA;
     command = 0;
-    senderType = FLASH;
+    senderType = SenderType::FLASH;
 
     uint8_t mac[6];
     wifi_get_macaddr(0, mac);
@@ -12,10 +12,56 @@ MessageStruct::MessageStruct() {
 }
 
 void masterPairing() {
-    MessageStruct pairingMsg;
+    static uint32_t timer = millis();
+
+    if(cloudButton.isDouble()) timer = millis() + 2000;
+    if(millis() < timer && cloudButton.isHolded()) paired = 0;
+
+    if(paired == 0) {
+        MessageStruct pairingMsg;
+        pairingMsg.msgType = MessageType::PAIRING;
+        pairingMsg.msgLen = 6;
+        uint8_t mymac[6];
+        wifi_get_macaddr(0, mymac);
+        memcpy(pairingMsg.message, mymac, 6);
+
+        uint32_t timeout = millis() + 10000;
+        uint32_t led_timeout = millis() + 200;
+        bool led_state = 0;
+
+        uint8_t broadcast[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+        while(millis() < timeout && paired != 1) {
+            esp_now_send(broadcast, (uint8_t *)&pairingMsg, pairingMsg.msgLen + 5);
+            if(millis() > led_timeout) {
+                led_state = !led_state;
+                digitalWrite(LED_BUILTIN, led_state);
+                led_timeout = millis();
+            }
+        }
+        digitalWrite(LED_BUILTIN, LOW);
+    }
 }
 void slavePairing() {
+    static uint32_t timer = millis();
 
+    if(cloudButton.isDouble()) timer = millis() + 2000;
+    if(millis() < timer && cloudButton.isHolded()) paired = 0;
+
+    if(paired == 0) {
+        uint32_t timeout = millis() + 10000;
+        uint32_t led_timeout = millis() + 200;
+        bool led_state = 0;
+
+        uint8_t broadcast[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+        while(millis() < timeout && paired != 1) {
+            if(millis() > led_timeout) {
+                led_state = !led_state;
+                digitalWrite(LED_BUILTIN, led_state);
+                led_timeout = millis();
+            }
+        }
+        digitalWrite(LED_BUILTIN, HIGH);
+    }
 }
 void messageSend() {
     static MessageStruct sendMsg;
@@ -48,6 +94,7 @@ void messageRecv(uint8_t *mac, uint8_t *incomiingData, uint8_t len) {
             Serial.write(incoming.message, incoming.msgLen);
         break;
         case MessageType::PAIRING:
+            if(paired != 0) return;
             if(incoming.senderType == SenderType::FLASH) {
                 #ifdef BOARD2
                 memcpy(peerAddr, incoming.message, 6);
@@ -137,4 +184,20 @@ void timersCheck() {
     if(millis() > pinsTimer[SubcommandType::RESET]) digitalWrite(RESET_32, 0);
     if(millis() > pinsTimer[SubcommandType::BOOT]) digitalWrite(BOOT_32, 0);
     #endif
+}
+void uploadCheckMaster() {
+    if(digitalRead(RTS) == 0) {
+        MessageStruct resetCommand;
+        resetCommand.msgType = MessageType::UPLOAD_COMMAND;
+        resetCommand.command = SubcommandType::RESET;
+
+        esp_now_send(peerAddr, (uint8_t *)&resetCommand, 5);
+    }
+    if(digitalRead(DTR) == 0) {
+        MessageStruct bootCommand;
+        bootCommand.msgType = MessageType::UPLOAD_COMMAND;
+        bootCommand.command = SubcommandType::BOOT;
+
+        esp_now_send(peerAddr, (uint8_t *)&bootCommand, 5);
+    }
 }
