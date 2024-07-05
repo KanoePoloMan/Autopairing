@@ -2,6 +2,8 @@
 #include "Autopairing.hpp"
 
 uint8_t broadcastAddress[] = BOARD;
+GButton cloudButtonESP(CLOUD_PIN);
+GyverOLED<SSD1306_128x64, OLED_NO_BUFFER> oled;
 
 int counter = 0;
 
@@ -22,6 +24,7 @@ void loop() {
   #endif
   #ifdef BOARD2
     slavePairing();
+    // drawPairingAddr();
   #endif
   timersCheck();
 }
@@ -38,13 +41,14 @@ void screenInitialize() {
   oled.setScale(2);
   oled.home();
 }
+#endif
 void buttonInitialize() {
-  cloudButton.setDebounce(30);
-  cloudButton.setTimeout(1000);
-  cloudButton.setClickTimeout(500);
+  cloudButtonESP.setDebounce(30);
+  cloudButtonESP.setTimeout(1000);
+  cloudButtonESP.setClickTimeout(500);
 
-  cloudButton.setType(LOW_PULL);
-  cloudButton.setDirection(NORM_OPEN);
+  cloudButtonESP.setType(LOW_PULL);
+  cloudButtonESP.setDirection(NORM_OPEN);
 }
 void boardInitialisation() {
   Serial.begin(115200);
@@ -66,12 +70,16 @@ void boardInitialisation() {
     pinMode(BOOT_32, OUTPUT);
 
     pinMode(LED_BUILTIN, OUTPUT);
-    digitalWrite(LED_BUILTIN, LOW);
+    // digitalWrite(LED_BUILTIN, LOW);
   #endif
   #ifdef BOARD1
     pinMode(DTR, INPUT);
     pinMode(RTS, INPUT);
+
+    pinMode(LED_BUILTIN, OUTPUT);
   #endif
 }
-
-#endif
+void drawPairingAddr() {
+  oled.setCursor(5, 10);
+  oled.printf("%x:%x:%x:%x:%x:%x", peerAddr[0], peerAddr[1], peerAddr[2], peerAddr[3], peerAddr[4], peerAddr[5]);
+}

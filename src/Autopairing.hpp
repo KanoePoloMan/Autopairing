@@ -1,26 +1,26 @@
-#ifndef __AUTOPAURING_HPP__
-#define __AUTOPAURING_HPP__
+#ifndef __AUTOPAIRING_HPP__
+#define __AUTOPAIRING_HPP__
 
 #include "main.hpp"
 
 #define BUFFER_SIZE 245
 
-#define DTR 4
-#define RTS 5
+#define DTR 13
+#define RTS 12
 
 #define RESET_32 12
 #define BOOT_32 13
 
-const uint32_t timeout_micros = (int)(1.0 / 74880 * 1E6) * 20;
-uint32_t send_timeout = 0;
+extern const uint32_t timeout_micros;
+extern uint32_t send_timeout;
 
-uint32_t pinsTimer[2];
+extern uint32_t pinsTimer[2];
 
-uint8_t peerAddr[6];
-int paired = 0;
+extern uint8_t peerAddr[6];
+extern int paired;
 
-uint8_t buf_recv[BUFFER_SIZE];
-uint8_t buf_send[BUFFER_SIZE];
+// uint8_t buf_recv[BUFFER_SIZE];
+// uint8_t buf_send[BUFFER_SIZE];
 
 typedef enum {
     PAIRING,
@@ -46,7 +46,7 @@ typedef enum {
 typedef struct MessageStruct {
     uint8_t msgType;//тип сообщения
     uint8_t command;//команда подтипа сообщения
-    bool senderType;//тип отправителя сообщения
+    uint8_t senderType;//тип отправителя сообщения
     uint8_t password;//пароль
     uint8_t msgLen;
     uint8_t message[BUFFER_SIZE];//сообщение

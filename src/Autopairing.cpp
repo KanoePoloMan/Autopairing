@@ -1,5 +1,13 @@
 #include "Autopairing.hpp"
 
+const uint32_t timeout_micros = (int)(1.0 / 115200 * 1E6) * 20;
+uint32_t send_timeout = 0;
+
+uint32_t pinsTimer[2];
+
+uint8_t peerAddr[6];
+int paired = 0;
+
 MessageStruct::MessageStruct() {
     msgType = MessageType::DATA;
     command = 0;
@@ -14,8 +22,8 @@ MessageStruct::MessageStruct() {
 void masterPairing() {
     static uint32_t timer = millis();
 
-    if(cloudButton.isDouble()) timer = millis() + 2000;
-    if(millis() < timer && cloudButton.isHolded()) paired = 0;
+    if(cloudButtonESP.isDouble()) timer = millis() + 2000;
+    if(millis() < timer && cloudButtonESP.isHolded()) paired = 0;
 
     if(paired == 0) {
         MessageStruct pairingMsg;
@@ -31,36 +39,40 @@ void masterPairing() {
 
         uint8_t broadcast[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
         while(millis() < timeout && paired != 1) {
-            esp_now_send(broadcast, (uint8_t *)&pairingMsg, pairingMsg.msgLen + 5);
             if(millis() > led_timeout) {
+                esp_now_send(broadcast, (uint8_t *)&pairingMsg, pairingMsg.msgLen + 5);
+                Serial.println("Send pairing message");
+
                 led_state = !led_state;
                 digitalWrite(LED_BUILTIN, led_state);
-                led_timeout = millis();
+                led_timeout = millis() + 200;
+                ESP.wdtFeed();
             }
         }
-        digitalWrite(LED_BUILTIN, LOW);
+        digitalWrite(LED_BUILTIN, HIGH);
     }
 }
 void slavePairing() {
     static uint32_t timer = millis();
 
-    if(cloudButton.isDouble()) timer = millis() + 2000;
-    if(millis() < timer && cloudButton.isHolded()) paired = 0;
+    if(cloudButtonESP.isDouble()) timer = millis() + 2000;
+    if(millis() < timer && cloudButtonESP.isHolded()) paired = 0;
 
     if(paired == 0) {
         uint32_t timeout = millis() + 10000;
         uint32_t led_timeout = millis() + 200;
-        bool led_state = 0;
+        bool led_state = 1;
 
-        uint8_t broadcast[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+        // uint8_t broadcast[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
         while(millis() < timeout && paired != 1) {
             if(millis() > led_timeout) {
                 led_state = !led_state;
                 digitalWrite(LED_BUILTIN, led_state);
-                led_timeout = millis();
+                led_timeout = millis() + 200;
+                ESP.wdtFeed();
             }
         }
-        digitalWrite(LED_BUILTIN, HIGH);
+        digitalWrite(LED_BUILTIN, LOW);
     }
 }
 void messageSend() {
@@ -86,7 +98,7 @@ void messageSend() {
 }
 void messageRecv(uint8_t *mac, uint8_t *incomiingData, uint8_t len) {
     MessageStruct incoming;
-    memcpy(&incoming, incomiingData, len);
+    memcpy(&incoming, incomiingData, sizeof(incoming));
 
     switch(incoming.msgType) {
         case MessageType::DATA:
@@ -156,7 +168,7 @@ void messageRecv(uint8_t *mac, uint8_t *incomiingData, uint8_t len) {
                     if(incoming.msgLen == 5 && incoming.message[0] == 5 
                                             && incoming.message[1] == 4 
                                             && incoming.message[2] == 3 
-                                            && incoming.message[1] == 2 
+                                            && incoming.message[3] == 2 
                                             && incoming.message[4] == 1){
                         paired = 1;
                         MessageStruct goodPairing;
@@ -164,6 +176,7 @@ void messageRecv(uint8_t *mac, uint8_t *incomiingData, uint8_t len) {
                         goodPairing.command = SubcommandType::PAIRED_IS_OK;
 
                         esp_now_send(peerAddr, (uint8_t *)&goodPairing, 5);
+                        // Serial.println("Send good pairing");
                     }
                 }
             }
@@ -173,6 +186,12 @@ void messageRecv(uint8_t *mac, uint8_t *incomiingData, uint8_t len) {
             
         break;
     }
+    // Serial.printf("Msg type: %d \n\r", incoming.msgType);
+    // Serial.printf("Command: %d \n\r", incoming.command);
+    // Serial.printf("senderType: %d \n\r", incoming.senderType);
+    // Serial.printf("Passwors: %d \n\r", incoming.password);
+    // Serial.printf("Msg Len: %d \n\r", incoming.msgLen);
+    // Serial.printf("Msg: %x:%x:%x:%x:%x:%x \n\r\n\r", incoming.message[0], incoming.message[1], incoming.message[2], incoming.message[3], incoming.message[4], incoming.message[5]);
 }
 bool checkPassword(uint8_t *mac, uint8_t password) {
     uint8_t realPassword = mac[0] + mac[1] + mac[2] + mac[3] + mac[4] + mac[5];
