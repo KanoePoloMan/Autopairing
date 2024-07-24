@@ -2,14 +2,12 @@
 #include "Autopairing.hpp"
 
 uint8_t broadcastAddress[] = BOARD;
-GButton cloudButtonESP(CLOUD_PIN);
 GyverOLED<SSD1306_128x64, OLED_NO_BUFFER> oled;
 
 int counter = 0;
 
 void setup() {
   boardInitialisation();
-  buttonInitialize();
   #ifdef BOARD2
     screenInitialize();
   #endif
@@ -23,15 +21,18 @@ void loop() {
     uploadCheckMaster();
   #endif
   #ifdef BOARD2
+    drawInfoOnScreen();
     slavePairing();
-    // drawPairingAddr();
   #endif
   timersCheck();
 }
 
-void OnDataSent(uint8_t *mac_addr, uint8_t sendStatus) {}
+void OnDataSent(uint8_t *mac_addr, uint8_t sendStatus) {
+  lastPackageTime = millis();
+}
 void OnDataRecv(uint8_t * mac, uint8_t *incomingData, uint8_t len) {
   messageRecv(mac, incomingData, len);
+  lastPackageTime = millis();
 }
 #ifdef BOARD2
 
@@ -40,16 +41,13 @@ void screenInitialize() {
   oled.clear();
   oled.setScale(2);
   oled.home();
+
+  oled.printf("%s\n", paired == 0 ? "Not paired" : "Paired");
+  oled.setCursor(0, 2);
+  oled.printf("Ch: %d%%\n", getChargeProcent());
 }
 #endif
-void buttonInitialize() {
-  cloudButtonESP.setDebounce(30);
-  cloudButtonESP.setTimeout(1000);
-  cloudButtonESP.setClickTimeout(500);
 
-  cloudButtonESP.setType(LOW_PULL);
-  cloudButtonESP.setDirection(NORM_OPEN);
-}
 void boardInitialisation() {
   Serial.begin(115200);
   Serial.println("Serial Begin");
@@ -70,6 +68,7 @@ void boardInitialisation() {
     pinMode(BOOT_32, OUTPUT);
 
     pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(CLOUD_PIN, INPUT);
     // digitalWrite(LED_BUILTIN, LOW);
   #endif
   #ifdef BOARD1
@@ -77,9 +76,42 @@ void boardInitialisation() {
     pinMode(RTS, INPUT);
 
     pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(CLOUD_PIN, INPUT);
   #endif
 }
-void drawPairingAddr() {
-  oled.setCursor(5, 10);
-  oled.printf("%x:%x:%x:%x:%x:%x", peerAddr[0], peerAddr[1], peerAddr[2], peerAddr[3], peerAddr[4], peerAddr[5]);
+void drawInfoOnScreen() {
+  static uint32_t timer = millis() + 1000;
+  static int prevParams[2] = {paired, getChargeProcent()};
+
+  if((millis() > timer)) {
+    int charge = getChargeProcent();
+    if(prevParams[0] != paired || prevParams[1] != charge) {
+      oled.clear();
+      oled.home();
+      oled.printf("%s\n", paired == 0 ? "Not paired" : "Paired");
+      oled.setCursor(0, 2);
+      oled.printf("Ch: %d%%\n", charge);
+      oledDrawChargeBlock();
+
+      prevParams[0] = paired;
+      prevParams[1] = charge;
+    }
+    timer = millis() + 1000;
+  }
+}
+int getChargeProcent() {
+  int ADCvalue = analogRead(A0); 
+  return (((ADCvalue > 840 ? 840 : (ADCvalue < 700 ? 700 : ADCvalue)) - 700) * 10) / 14;
+}
+void oledDrawChargeBlock() {
+  oled.line(10, 20, 60, 20);
+  oled.line(10, 50, 60, 50);
+  oled.line(10, 20, 10, 50);
+
+  oled.line(60, 20, 60, 30);
+  oled.line(60, 50, 60, 40);
+
+  oled.line(60, 30, 70, 30);
+  oled.line(60, 40, 70, 40);
+  oled.line(70, 30, 70, 40);
 }

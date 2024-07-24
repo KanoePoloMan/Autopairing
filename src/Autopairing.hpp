@@ -19,6 +19,8 @@ extern uint32_t pinsTimer[2];
 extern uint8_t peerAddr[6];
 extern int paired;
 
+extern uint32_t lastPackageTime;
+
 // uint8_t buf_recv[BUFFER_SIZE];
 // uint8_t buf_send[BUFFER_SIZE];
 
@@ -36,7 +38,8 @@ typedef enum {
     RESET,
     BOOT,
     TEST,
-    PAIRED_IS_OK
+    PAIRED_IS_OK,
+    PING
 } SubcommandType;
 typedef enum {
     FLASH,
@@ -68,5 +71,7 @@ void writeToEEPROM(uint8_t *data, uint8_t len);
 void readFromEEPROM(uint8_t *data, uint8_t len);
 
 void uploadCheckMaster();
+
+void pingConnection();
 
 #endif

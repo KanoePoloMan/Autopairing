@@ -6,10 +6,9 @@
 #include <ESP8266WiFi.h>
 #include <espnow.h>
 #include <GyverOLED.h>
-#include <GyverButton.h>
 
-// #define BOARD2//slave
-#define BOARD1//programmer
+#define BOARD2//slave
+// #define BOARD1//programmer
 
 #ifdef BOARD2 //programmer bc:ff:4d:f8:04:f8 COM3 white
   #define BOARD {0xb4, 0xe6, 0x2d, 0x37, 0x16, 0xbf}
@@ -29,13 +28,13 @@ void boardInitialisation();
 extern GyverOLED<SSD1306_128x64, OLED_NO_BUFFER> oled;
 
 void screenInitialize();
-void drawPairingAddr();
+void drawInfoOnScreen();
 #endif
 
 
 #define CLOUD_PIN 14
 
-extern GButton cloudButtonESP;
-void buttonInitialize();
+int getChargeProcent();
+void oledDrawChargeBlock();
 
 #endif

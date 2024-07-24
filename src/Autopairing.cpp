@@ -8,6 +8,8 @@ uint32_t pinsTimer[2];
 uint8_t peerAddr[6];
 int paired = 0;
 
+uint32_t lastPackageTime;
+
 MessageStruct::MessageStruct() {
     msgType = MessageType::DATA;
     command = 0;
@@ -22,8 +24,8 @@ MessageStruct::MessageStruct() {
 void masterPairing() {
     static uint32_t timer = millis();
 
-    if(cloudButtonESP.isDouble()) timer = millis() + 2000;
-    if(millis() < timer && cloudButtonESP.isHolded()) paired = 0;
+    // if(cloudButtonESP.isDouble()) timer = millis() + 2000;
+    // if(millis() < timer && cloudButtonESP.isHolded()) paired = 0;
 
     if(paired == 0) {
         MessageStruct pairingMsg;
@@ -54,26 +56,30 @@ void masterPairing() {
 }
 void slavePairing() {
     static uint32_t timer = millis();
+    static bool hold = false;
 
-    if(cloudButtonESP.isDouble()) timer = millis() + 2000;
-    if(millis() < timer && cloudButtonESP.isHolded()) paired = 0;
+    if(digitalRead(CLOUD_PIN) == 1 && hold == false) {
+        timer = millis() + 5000;
+        hold = true;
+    } else if(digitalRead(CLOUD_PIN) == 0) hold = false;
+    if(millis() > timer && hold == true) paired = 0;
 
-    if(paired == 0) {
-        uint32_t timeout = millis() + 10000;
-        uint32_t led_timeout = millis() + 200;
-        bool led_state = 1;
 
-        // uint8_t broadcast[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-        while(millis() < timeout && paired != 1) {
-            if(millis() > led_timeout) {
-                led_state = !led_state;
-                digitalWrite(LED_BUILTIN, led_state);
-                led_timeout = millis() + 200;
-                ESP.wdtFeed();
-            }
-        }
-        digitalWrite(LED_BUILTIN, LOW);
-    }
+    // if(paired == 0) {
+    //     uint32_t timeout = millis() + 10000;
+    //     uint32_t led_timeout = millis() + 200;
+    //     bool led_state = 1;
+
+    //     // while(millis() < timeout && paired != 1) {
+    //     //     if(millis() > led_timeout) {
+    //     //         led_state = !led_state;
+    //     //         digitalWrite(LED_BUILTIN, led_state);
+    //     //         led_timeout = millis() + 200;
+    //     //         ESP.wdtFeed();
+    //     //     }
+    //     // }
+    //     digitalWrite(LED_BUILTIN, LOW);
+    // }
 }
 void messageSend() {
     static MessageStruct sendMsg;
@@ -186,12 +192,17 @@ void messageRecv(uint8_t *mac, uint8_t *incomiingData, uint8_t len) {
             
         break;
     }
-    // Serial.printf("Msg type: %d \n\r", incoming.msgType);
-    // Serial.printf("Command: %d \n\r", incoming.command);
-    // Serial.printf("senderType: %d \n\r", incoming.senderType);
-    // Serial.printf("Passwors: %d \n\r", incoming.password);
-    // Serial.printf("Msg Len: %d \n\r", incoming.msgLen);
-    // Serial.printf("Msg: %x:%x:%x:%x:%x:%x \n\r\n\r", incoming.message[0], incoming.message[1], incoming.message[2], incoming.message[3], incoming.message[4], incoming.message[5]);
+    Serial.printf("Msg type: %d \n\r", incoming.msgType);
+    Serial.printf("Command: %d \n\r", incoming.command);
+    Serial.printf("senderType: %d \n\r", incoming.senderType);
+    Serial.printf("Passwors: %d \n\r", incoming.password);
+    Serial.printf("Msg Len: %d \n\r", incoming.msgLen);
+    Serial.printf("Data:");
+    for(int i = 0; i < incoming.msgLen; i++) {
+        Serial.printf("%d ", incoming.message[i]);
+        if(i % 20 == 0) Serial.printf("\n\r");
+    }
+    Serial.printf("\n\r\n\r\n\r");
 }
 bool checkPassword(uint8_t *mac, uint8_t password) {
     uint8_t realPassword = mac[0] + mac[1] + mac[2] + mac[3] + mac[4] + mac[5];
@@ -218,5 +229,21 @@ void uploadCheckMaster() {
         bootCommand.command = SubcommandType::BOOT;
 
         esp_now_send(peerAddr, (uint8_t *)&bootCommand, 5);
+    }
+}
+void pingConnection() {
+    if(millis() > lastPackageTime + 5000) {
+        MessageStruct ping;
+        ping.msgType = MessageType::UPLOAD_COMMAND;
+        ping.command = SubcommandType::PING;
+        #ifdef BOARD1
+            ping.senderType = SenderType::FLASH;
+        #endif
+        #ifdef BOARD2
+            ping.senderType = SenderType::PERVOPROHODETS;
+        #endif
+        ping.msgLen = 1;
+        ping.message[0] = 0;
+        esp_now_send(peerAddr, (uint8_t *)&ping, ping.msgLen + 5);
     }
 }
