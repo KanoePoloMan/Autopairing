@@ -19,7 +19,8 @@ extern uint32_t pinsTimer[2];
 extern uint8_t peerAddr[6];
 extern int paired;
 
-extern uint32_t lastPackageTime;
+extern uint32_t lastSendPackageTime;
+extern uint32_t lastRecvPackageTime;
 
 // uint8_t buf_recv[BUFFER_SIZE];
 // uint8_t buf_send[BUFFER_SIZE];

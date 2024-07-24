@@ -8,7 +8,8 @@ uint32_t pinsTimer[2];
 uint8_t peerAddr[6];
 int paired = 0;
 
-uint32_t lastPackageTime;
+uint32_t lastSendPackageTime = millis();
+uint32_t lastRecvPackageTime = millis();
 
 MessageStruct::MessageStruct() {
     msgType = MessageType::DATA;
@@ -166,6 +167,13 @@ void messageRecv(uint8_t *mac, uint8_t *incomiingData, uint8_t len) {
                 esp_now_send(peerAddr, (uint8_t *)&answer, answer.msgLen + 5);
             } else if(incoming.command == SubcommandType::PAIRED_IS_OK) {
                 paired = 1;
+            } else if(incoming.command == SubcommandType::PING) {
+                MessageStruct pingAnswer;
+                pingAnswer.msgType = MessageType::UPLOAD_COMMAND;
+                pingAnswer.command = SubcommandType::PING;
+                pingAnswer.senderType = SenderType::PERVOPROHODETS;
+
+                esp_now_send(peerAddr, (uint8_t *)&pingAnswer, pingAnswer.msgLen + 5);
             }
             #endif
             #ifdef BOARD1
@@ -232,18 +240,13 @@ void uploadCheckMaster() {
     }
 }
 void pingConnection() {
-    if(millis() > lastPackageTime + 5000) {
+    #ifdef BOARD1
+    if(millis() > lastRecvPackageTime + 3000 && millis() > lastSendPackageTime + 3000) {
         MessageStruct ping;
         ping.msgType = MessageType::UPLOAD_COMMAND;
         ping.command = SubcommandType::PING;
-        #ifdef BOARD1
-            ping.senderType = SenderType::FLASH;
-        #endif
-        #ifdef BOARD2
-            ping.senderType = SenderType::PERVOPROHODETS;
-        #endif
-        ping.msgLen = 1;
-        ping.message[0] = 0;
         esp_now_send(peerAddr, (uint8_t *)&ping, ping.msgLen + 5);
     }
+    #endif
+    if(millis() > lastRecvPackageTime + 10000) paired = 0;
 }

@@ -25,14 +25,15 @@ void loop() {
     slavePairing();
   #endif
   timersCheck();
+  pingConnection();
 }
 
 void OnDataSent(uint8_t *mac_addr, uint8_t sendStatus) {
-  lastPackageTime = millis();
+  lastSendPackageTime = millis();
 }
 void OnDataRecv(uint8_t * mac, uint8_t *incomingData, uint8_t len) {
   messageRecv(mac, incomingData, len);
-  lastPackageTime = millis();
+  lastRecvPackageTime = millis();
 }
 #ifdef BOARD2
 
@@ -104,14 +105,14 @@ int getChargeProcent() {
   return (((ADCvalue > 840 ? 840 : (ADCvalue < 700 ? 700 : ADCvalue)) - 700) * 10) / 14;
 }
 void oledDrawChargeBlock() {
-  oled.line(10, 20, 60, 20);
-  oled.line(10, 50, 60, 50);
-  oled.line(10, 20, 10, 50);
+  // oled.line(10, 20, 60, 20);
+  // oled.line(10, 50, 60, 50);
+  // oled.line(10, 20, 10, 50);
 
-  oled.line(60, 20, 60, 30);
-  oled.line(60, 50, 60, 40);
+  // oled.line(60, 20, 60, 30);
+  // oled.line(60, 50, 60, 40);
 
-  oled.line(60, 30, 70, 30);
-  oled.line(60, 40, 70, 40);
-  oled.line(70, 30, 70, 40);
+  // oled.line(60, 30, 70, 30);
+  // oled.line(60, 40, 70, 40);
+  // oled.line(70, 30, 70, 40);
 }
