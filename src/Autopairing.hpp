@@ -40,7 +40,8 @@ typedef enum {
     BOOT,
     TEST,
     PAIRED_IS_OK,
-    PING
+    PING,
+    SETUP_PING
 } SubcommandType;
 typedef enum {
     FLASH,

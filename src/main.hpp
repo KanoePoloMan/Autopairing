@@ -6,6 +6,7 @@
 #include <ESP8266WiFi.h>
 #include <espnow.h>
 #include <GyverOLED.h>
+#include <EEPROM.h>
 
 #define BOARD2//slave
 // #define BOARD1//programmer
@@ -34,7 +35,12 @@ void drawInfoOnScreen();
 
 #define CLOUD_PIN 14
 
+extern uint8_t charge;
+
 int getChargeProcent();
+void ADCpowerTimer();
 void oledDrawChargeBlock();
+
+void getMacFromEEPROM();
 
 #endif

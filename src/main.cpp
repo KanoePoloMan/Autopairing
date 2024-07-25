@@ -4,7 +4,7 @@
 uint8_t broadcastAddress[] = BOARD;
 GyverOLED<SSD1306_128x64, OLED_NO_BUFFER> oled;
 
-int counter = 0;
+uint8_t charge = 0;
 
 void setup() {
   boardInitialisation();
@@ -21,7 +21,8 @@ void loop() {
     uploadCheckMaster();
   #endif
   #ifdef BOARD2
-    drawInfoOnScreen();
+    ADCpowerTimer();
+    // drawInfoOnScreen();
     slavePairing();
   #endif
   timersCheck();
@@ -45,7 +46,8 @@ void screenInitialize() {
 
   oled.printf("%s\n", paired == 0 ? "Not paired" : "Paired");
   oled.setCursor(0, 2);
-  oled.printf("Ch: %d%%\n", getChargeProcent());
+  charge = getChargeProcent();
+  oled.printf("Ch: %d%%\n", charge);
 }
 #endif
 
@@ -79,25 +81,23 @@ void boardInitialisation() {
     pinMode(LED_BUILTIN, OUTPUT);
     pinMode(CLOUD_PIN, INPUT);
   #endif
+
+  EEPROM.begin(4096);
+  getMacFromEEPROM();
 }
 void drawInfoOnScreen() {
-  static uint32_t timer = millis() + 1000;
   static int prevParams[2] = {paired, getChargeProcent()};
 
-  if((millis() > timer)) {
-    int charge = getChargeProcent();
-    if(prevParams[0] != paired || prevParams[1] != charge) {
-      oled.clear();
-      oled.home();
-      oled.printf("%s\n", paired == 0 ? "Not paired" : "Paired");
-      oled.setCursor(0, 2);
-      oled.printf("Ch: %d%%\n", charge);
-      oledDrawChargeBlock();
+  if(prevParams[0] != paired || prevParams[1] != charge) {
+    oled.clear();
+    oled.home();
+    oled.printf("%s\n", paired == 0 ? "Not paired" : "Paired");
+    oled.setCursor(0, 2);
+    oled.printf("Ch: %d%%\n", charge);
+    oledDrawChargeBlock();
 
-      prevParams[0] = paired;
-      prevParams[1] = charge;
-    }
-    timer = millis() + 1000;
+    prevParams[0] = paired;
+    prevParams[1] = charge;
   }
 }
 int getChargeProcent() {
@@ -105,14 +105,13 @@ int getChargeProcent() {
   return (((ADCvalue > 840 ? 840 : (ADCvalue < 700 ? 700 : ADCvalue)) - 700) * 10) / 14;
 }
 void oledDrawChargeBlock() {
-  // oled.line(10, 20, 60, 20);
-  // oled.line(10, 50, 60, 50);
-  // oled.line(10, 20, 10, 50);
+  // Draw bitmaps
+}
+void ADCpowerTimer() {
+  static uint32_t timer = millis();
 
-  // oled.line(60, 20, 60, 30);
-  // oled.line(60, 50, 60, 40);
-
-  // oled.line(60, 30, 70, 30);
-  // oled.line(60, 40, 70, 40);
-  // oled.line(70, 30, 70, 40);
+  if(millis() > timer + 5000) {
+    charge = getChargeProcent();
+    timer = millis();
+  }
 }
