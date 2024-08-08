@@ -81,6 +81,9 @@ void messageSend() {
     if(Serial.available() > 0) {
         while(Serial.available() > 0 && sendMsg.msgLen < BUFFER_SIZE) {
             sendMsg.message[sendMsg.msgLen] = Serial.read();
+            #ifdef BOARD1
+            checkCommands(sendMsg.message[sendMsg.msgLen]);
+            #endif
             send_timeout = micros() + timeout_micros;
             sendMsg.msgLen++;
         }
@@ -163,6 +166,14 @@ void messageRecv(uint8_t *mac, uint8_t *incomiingData, uint8_t len) {
                 pingAnswer.senderType = SenderType::PERVOPROHODETS;
 
                 esp_now_send(peerAddr, (uint8_t *)&pingAnswer, pingAnswer.msgLen + 5);
+            } else if(incoming.command == SubcommandType::CONNECT_TO_WIFI) {
+                char name[32];
+                char pass[32];
+                
+                for(int i = 0; i < 32 && incoming.message[i] != 0; i++) name[i] = incoming.message[i];
+                for(int i = 32; i < 64 && incoming.message[i] != 0; i++) pass[i - 32] = incoming.message[i];
+
+                connectToWifi(name, pass);
             }
             #endif
             #ifdef BOARD1

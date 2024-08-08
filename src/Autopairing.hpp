@@ -2,6 +2,7 @@
 #define __AUTOPAIRING_HPP__
 
 #include "main.hpp"
+#include "ConnectToServer.hpp"
 
 #define BUFFER_SIZE 245
 
@@ -41,7 +42,8 @@ typedef enum {
     TEST,
     PAIRED_IS_OK,
     PING,
-    SETUP_PING
+    SETUP_PING,
+    CONNECT_TO_WIFI
 } SubcommandType;
 typedef enum {
     FLASH,
