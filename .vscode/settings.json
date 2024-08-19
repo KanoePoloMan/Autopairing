@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "*.h": "cpp",
+        "*.tpp": "cpp",
+        "Makefile_tetris": "makefile",
+        "cstring": "cpp"
+    }
+}

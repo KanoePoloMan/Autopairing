@@ -40,6 +40,7 @@ extern uint8_t charge;
 int getChargeProcent();
 void ADCpowerTimer();
 void oledDrawChargeBlock();
+void oledCustomClear(int x, int y, int width);
 
 void getMacFromEEPROM();
 

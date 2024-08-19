@@ -22,7 +22,7 @@ void loop() {
   #endif
   #ifdef BOARD2
     ADCpowerTimer();
-    // drawInfoOnScreen();
+    drawInfoOnScreen();
     slavePairing();
   #endif
   timersCheck();
@@ -88,15 +88,20 @@ void boardInitialisation() {
 void drawInfoOnScreen() {
   static int prevParams[2] = {paired, getChargeProcent()};
 
-  if(prevParams[0] != paired || prevParams[1] != charge) {
-    oled.clear();
+  if(prevParams[0] != paired) {
+    oledCustomClear(0, 0, 10);
     oled.home();
     oled.printf("%s\n", paired == 0 ? "Not paired" : "Paired");
-    oled.setCursor(0, 2);
-    oled.printf("Ch: %d%%\n", charge);
-    oledDrawChargeBlock();
+
 
     prevParams[0] = paired;
+  }
+  if(prevParams[1] != charge) {
+    oled.setCursor(0, 2);
+    oledCustomClear(0, 2, 10);
+    oled.printf("Ch: %d%%\n", charge);
+
+    // oledDrawChargeBlock();
     prevParams[1] = charge;
   }
 }
@@ -114,4 +119,8 @@ void ADCpowerTimer() {
     charge = getChargeProcent();
     timer = millis();
   }
+}
+void oledCustomClear(int x, int y, int width) {
+  oled.setCursor(x, y);
+  for(int i = 0; i < width; i++) oled.printf(" ");
 }
