@@ -11,8 +11,7 @@ int paired = 0;
 uint32_t lastSendPackageTime = millis();
 uint32_t lastRecvPackageTime = millis();
 
-uint8_t uartBuffer[256];
-uint8_t uartPos = 0;
+UartBuffer uartBuffer;
 
 MessageStruct::MessageStruct() {
     msgType = MessageType::DATA;
@@ -76,10 +75,6 @@ void messageSend() {
     static MessageStruct sendMsg;
     #ifdef BOARD1
         sendMsg.senderType = SenderType::FLASH;
-        //Массив для команд по протоколу SLIP, первый элемент - размер команды
-        static std::pair<uint8_t, uint8_t[18]> command;
-        static bool writeCommand = false;
-        static uint8_t prevSym = 0x00;
     #endif
     #ifdef BOARD2
         sendMsg.senderType = SenderType::PERVOPROHODETS;
@@ -88,35 +83,36 @@ void messageSend() {
         while(Serial.available() > 0 && sendMsg.msgLen < BUFFER_SIZE) {
             #ifdef BOARD1
                 uint8_t currSym = Serial.peek();
-                if(currSym == 0xC0 && writeCommand == false) writeCommand = true;
-                else if((currSym == 0xC0 && writeCommand == true) || command.first == 18) {
-                    writeCommand = false;
-                    std::pair<boolean, uint8_t[4]> result = commandAnalysier(command);
-                    command.first = 0;
-                    if(result.first == true) {
-                        MessageStruct command;
+                uartBuffer.addSym(currSym);
+                uint8_t sequence[] = {0xC0, 0x00, 0x0F, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00};
+                int16_t result = -1;
+                if(currSym == 0xC0) result = uartBuffer.findSequence(sequence, 9);
+                if(result != -1) {
+                    digitalWrite(5, HIGH);
 
-                        command.msgType = MessageType::UPLOAD_COMMAND;
-                        command.command = SubcommandType::CHANGE_BAUDRATE;
-                        command.senderType = SenderType::PERVOPROHODETS;
-                        command.msgLen = 4;
+                    uint8_t speed[4];
 
-                        for(int i = 0; i < 4; i++) command.message[i] = result.second[i];
-
-                        esp_now_send(peerAddr, (uint8_t *)&command, command.msgLen + 5);
-
-                        uint32_t speed = 0;
-                        speed |= result.second[0] << 24; 
-                        speed |= result.second[1] << 16; 
-                        speed |= result.second[2] << 8; 
-                        speed |= result.second[3] << 0;
-
-                        Serial.updateBaudRate(speed); 
+                    for(int i = 0; i < 4; i++) {
+                        speed[i] = uartBuffer.getUartBuffer()[result + 9 + i];
                     }
-                }
-                if(writeCommand == true) {
-                    command.second[command.first] = Serial.peek();
-                    command.first++;
+                    MessageStruct command;
+
+                    command.msgType = MessageType::UPLOAD_COMMAND;
+                    command.command = SubcommandType::CHANGE_BAUDRATE;
+                    command.senderType = SenderType::PERVOPROHODETS;
+                    command.msgLen = 4;
+
+                    for(int i = 0; i < 4; i++) command.message[i] = result.second[i];
+
+                    esp_now_send(peerAddr, (uint8_t *)&command, command.msgLen + 5);
+
+                    uint32_t speed32 = 0;
+                    speed32 |= result.second[0] << 24; 
+                    speed32 |= result.second[1] << 16; 
+                    speed32 |= result.second[2] << 8; 
+                    speed32 |= result.second[3] << 0;
+
+                    Serial.updateBaudRate(speed32);
                 }
             #endif
             sendMsg.message[sendMsg.msgLen] = Serial.read();

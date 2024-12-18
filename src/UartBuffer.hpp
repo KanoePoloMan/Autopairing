@@ -5,6 +5,11 @@
 
 #include "stdlib.h"
 #include "string.h"
+#include <algorithm>
+#include <array>
+#include <string>
+#include <vector>
+#include <iostream>
 
 class UartBuffer {
     private:
@@ -18,7 +23,7 @@ class UartBuffer {
         /**
          * @return Возвращает -1, если последовательность не найдена, или элемент начала последовательности
          */
-        uint8_t findSequence(uint8_t* sequence);
+        int16_t findSequence(uint8_t* sequence);
 };
 
 #endif //__UART_BUFFER_HPP_

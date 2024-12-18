@@ -2,6 +2,7 @@
 #define __AUTOPAIRING_HPP__
 
 #include "main.hpp"
+#include "UartBuffer.hpp"
 
 #define BUFFER_SIZE 245
 
